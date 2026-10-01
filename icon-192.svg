@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4ade80"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="42" fill="#0b0f19"/>
+  <rect x="16" y="16" width="160" height="160" rx="32" fill="none" stroke="url(#g)" stroke-width="6"/>
+  <!-- Telefon gövdesi -->
+  <rect x="62" y="42" width="68" height="108" rx="12" fill="none" stroke="url(#g)" stroke-width="6"/>
+  <circle cx="96" cy="140" r="5" fill="#4ade80"/>
+  <!-- Sinyal dalgaları -->
+  <path d="M78 90 q18 -22 36 0" fill="none" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>
+  <path d="M70 100 q26 -34 52 0" fill="none" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <circle cx="96" cy="104" r="5" fill="#4ade80"/>
+</svg>
