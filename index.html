@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0f19">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pixel 7 · Donanım Testi</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon-192.svg">
+<style>
+  :root{
+    --bg:#0b0f19; --surface:#151b2b; --surface-2:#1e2638; --border:#2a3448;
+    --text:#e7ecf5; --muted:#8f9bb3;
+    --accent:#4ade80; --accent-2:#60a5fa; --warn:#fbbf24; --danger:#f87171;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--text); min-height:100dvh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:15px; line-height:1.5;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+    overscroll-behavior-y:contain;
+  }
+  header{
+    padding:calc(14px + env(safe-area-inset-top)) 16px 12px;
+    background:linear-gradient(180deg,#141b2c,#0b0f19);
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:20;
+  }
+  header h1{ margin:0; font-size:17px; font-weight:700; letter-spacing:.2px; display:flex; align-items:center; gap:8px; }
+  header .sub{ color:var(--muted); font-size:12px; margin-top:2px; }
+  .badge-device{
+    font-size:10px; font-weight:600; background:var(--surface-2); color:var(--accent);
+    border:1px solid var(--border); padding:2px 7px; border-radius:999px;
+  }
+  .tabs{
+    display:flex; gap:8px; overflow-x:auto; scrollbar-width:none;
+    padding:12px 16px 4px; position:sticky; top:0; z-index:19;
+    background:var(--bg);
+  }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tab{
+    flex:0 0 auto; border:1px solid var(--border); background:var(--surface);
+    color:var(--muted); padding:9px 14px; border-radius:999px; font-size:13px;
+    font-weight:600; cursor:pointer; white-space:nowrap; transition:.15s;
+  }
+  .tab.active{ background:var(--accent); color:#06210f; border-color:var(--accent); }
+  main{ padding:14px 16px 0; }
+  .panel{ display:none; animation:fade .18s ease; }
+  .panel.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px; margin-bottom:12px;
+  }
+  .card h2{ margin:0 0 4px; font-size:15px; font-weight:700; }
+  .card p.hint{ margin:0 0 12px; color:var(--muted); font-size:12.5px; }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  button.btn{
+    flex:1 1 auto; min-width:104px;
+    background:var(--surface-2); color:var(--text); border:1px solid var(--border);
+    padding:12px 14px; border-radius:11px; font-size:13.5px; font-weight:600;
+    cursor:pointer; transition:.15s; touch-action:manipulation;
+  }
+  button.btn:active{ transform:scale(.97); }
+  button.btn.primary{ background:var(--accent); color:#06210f; border-color:var(--accent); }
+  button.btn.blue{ background:var(--accent-2); color:#04162b; border-color:var(--accent-2); }
+  button.btn.danger{ background:var(--danger); color:#2a0505; border-color:var(--danger); }
+  button.btn:disabled{ opacity:.4; }
+  .swatches{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .swatch{
+    aspect-ratio:1.6/1; border-radius:10px; border:1px solid rgba(255,255,255,.15);
+    cursor:pointer; display:flex; align-items:flex-end; justify-content:center;
+    padding-bottom:6px; font-size:10.5px; font-weight:700; color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.85); transition:.12s;
+  }
+  .swatch:active{ transform:scale(.95); }
+  .stat-grid{ display:grid; grid-template-columns:1fr auto; gap:6px 12px; font-size:13px; }
+  .stat-grid dt{ color:var(--muted); }
+  .stat-grid dd{ margin:0; font-variant-numeric:tabular-nums; font-weight:600; text-align:right; }
+  canvas.display{ width:100%; border-radius:12px; background:#080b13; border:1px solid var(--border); display:block; touch-action:none; }
+  input[type=range]{ width:100%; accent-color:var(--accent); height:32px; }
+  input[type=text]{
+    width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    padding:11px 12px; border-radius:10px; font-size:14px; font-family:ui-monospace,monospace;
+  }
+  label.field{ display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:600; }
+  .status{ display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:13px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--muted); }
+  .dot.on{ background:var(--accent); box-shadow:0 0 9px var(--accent); }
+  .dot.off{ background:var(--danger); box-shadow:0 0 9px var(--danger); }
+  .log{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px;
+    background:#080b13; border:1px solid var(--border); border-radius:10px;
+    padding:10px; max-height:170px; overflow-y:auto; color:var(--muted); white-space:pre-wrap;
+  }
+  .meter{ height:14px; background:var(--surface-2); border-radius:7px; overflow:hidden; border:1px solid var(--border); }
+  .meter > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--warn),var(--danger)); transition:width .05s linear; }
+
+  #colorOverlay{
+    position:fixed; inset:0; z-index:9999; display:none;
+    align-items:center; justify-content:center; touch-action:none; cursor:pointer;
+  }
+  #colorOverlay.active{ display:flex; }
+  #colorOverlay .label{
+    font-size:15px; font-weight:700; opacity:.5; pointer-events:none; user-select:none;
+    text-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+  #colorOverlay .exit{
+    position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px;
+    background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.35);
+    padding:9px 16px; border-radius:999px; font-size:13px; font-weight:700;
+    backdrop-filter:blur(6px);
+  }
+  #colorOverlay .navhint{
+    position:absolute; bottom:calc(22px + env(safe-area-inset-bottom));
+    font-size:11.5px; opacity:.55; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6);
+    pointer-events:none; text-align:center; width:100%;
+  }
+  .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--muted); }
+  .pill.ok{ color:var(--accent); border-color:rgba(74,222,128,.4); }
+  .pill.no{ color:var(--danger); border-color:rgba(248,113,113,.4); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔧 Pixel 7 Donanım Testi <span class="badge-device">Android 14</span></h1>
+  <div class="sub">Web Tabanlı Mobil Uygulama Geliştirme · PWA Laboratuvarı</div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-panel="screen">🖥️ Ekran</button>
+  <button class="tab" data-panel="touch">👆 Dokunmatik</button>
+  <button class="tab" data-panel="speaker">🔊 Hoparlör</button>
+  <button class="tab" data-panel="mic">🎤 Mikrofon</button>
+  <button class="tab" data-panel="vibrate">📳 Titreşim</button>
+  <button class="tab" data-panel="network">📶 İnternet</button>
+</nav>
+
+<main>
+  <section class="panel active" id="panel-screen">
+    <div class="card">
+      <h2>Ekran Testi</h2>
+      <p class="hint">Ölü piksel, renk doğruluğu, homojenlik ve bantlanma kontrolü.
+        Bir renge dokun → tam ekranda açılır. <b>Sağ yarı</b> = sonraki, <b>Sol yarı</b> = önceki, <b>ESC/Çıkış</b> = kapat.</p>
+      <div class="swatches" id="swatches"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnStartScreen">▶️ Tam Ekran Renk Turu</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ekran Bilgileri</h2>
+      <dl class="stat-grid" id="screenStats">
+        <dt>Çözünürlük (CSS px)</dt><dd id="sRes">—</dd>
+        <dt>Fiziksel piksel</dt><dd id="sPhys">—</dd>
+        <dt>Device Pixel Ratio</dt><dd id="sDpr">—</dd>
+        <dt>Renk derinliği</dt><dd id="sDepth">—</dd>
+        <dt>Yenileme hızı (ölçüm)</dt><dd id="sHz">—</dd>
+        <dt>Yön</dt><dd id="sOrient">—</dd>
+      </dl>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnHz">🔄 Yenileme Hızını Ölç</button>
+      </div>
+      <p class="hint" style="margin-top:10px">Pixel 7 paneli 90 Hz'e kadar destekler. Tarayıcı 60 Hz'e kilitleyebilir.</p>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-touch">
+    <div class="card">
+      <h2>Dokunmatik Testi</h2>
+      <p class="hint">Çoklu dokunmayı test et. Aynı anda birden fazla parmağını basılı tut.</p>
+      <canvas class="display" id="touchCanvas" style="height:58vh"></canvas>
+      <dl class="stat-grid" style="margin-top:12px">
+        <dt>Maksimum dokunma noktası</dt><dd id="tMax">—</dd>
+        <dt>Şu anki aktif nokta</dt><dd id="tActive">0</dd>
+        <dt>Pointer tipi</dt><dd id="tType">—</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-speaker">
+    <div class="card">
+      <h2>Hoparlör Testi</h2>
+      <p class="hint">Pixel 7 stereo çıkışa sahiptir. Kulaklık takılıysa kanal testi kulaklık üzerinde çalışır.</p>
+      <label class="field">Ses seviyesi: <span id="volLabel">%15</span></label>
+      <input type="range" id="vol" min="0" max="100" value="15">
+      <label class="field" style="margin-top:10px">Frekans: <span id="freqLabel">440 Hz</span></label>
+      <input type="range" id="freq" min="20" max="18000" step="10" value="440">
+      <div class="row" style="margin-top:12px">
+        <button class="btn" data-tone="left">◀ Sol Kanal</button>
+        <button class="btn" data-tone="both">⬛ Stereo</button>
+        <button class="btn" data-tone="right">Sağ Kanal ▶</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn blue" id="btnSweep">📈 Frekans Taraması (20 Hz → 18 kHz)</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" data-tone="stop">⏹ Durdur</button>
+      </div>
+      <p class="hint" style="margin-top:12px">
+        <span class="pill" id="audioState">AudioContext: kapalı</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-mic">
+    <div class="card">
+      <h2>Mikrofon Testi</h2>
+      <p class="hint">İzin verildikten sonra dalga formu ve ses seviyesi gerçek zamanlı gösterilir.</p>
+      <canvas class="display" id="micCanvas" style="height:170px"></canvas>
+      <div style="margin-top:10px">
+        <label class="field">Ses seviyesi (RMS): <span id="micDb">-∞ dB</span></label>
+        <div class="meter"><i id="micBar"></i></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnMicStart">🎤 Mikrofonu Aç</button>
+        <button class="btn danger" id="btnMicStop" disabled>⏹ Kapat</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="btnRec" disabled>⏺ Kayıt Başlat</button>
+      </div>
+      <audio id="playback" controls style="width:100%; margin-top:10px; display:none"></audio>
+      <p class="hint" id="micInfo" style="margin-top:10px">Cihaz: —</p>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-vibrate">
+    <div class="card">
+      <h2>Titreşim Testi</h2>
+      <p class="hint">Vibration API yalnızca kullanıcı etkileşimi sonrası çalışır ve sayfa görünür olmalıdır.</p>
+      <p class="hint">Destek durumu: <span class="pill" id="vibSupport">kontrol ediliyor…</span></p>
+      <div class="row">
+        <button class="btn" data-vib="80">Tek kısa (80 ms)</button>
+        <button class="btn" data-vib="500">Tek uzun (500 ms)</button>
+        <button class="btn" data-vib="60,80,60">Çift tık</button>
+        <button class="btn" data-vib="50,60,50,60,50">Üçlü</button>
+        <button class="btn" data-vib="150,100,150,100,150,100,150">SOS ···———···</button>
+        <button class="btn" data-vib="800,200,800,200,800,200,1200">Kalp atışı</button>
+      </div>
+      <div style="margin-top:14px">
+        <label class="field">Özel desen (ms, virgülle) — örn: <code>200,100,200,100,600</code></label>
+        <input type="text" id="vibCustom" value="300,150,300,150,900" inputmode="numeric">
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="btnVibCustom">📳 Deseni Çalıştır</button>
+          <button class="btn" id="btnVibStop">⏹ Durdur</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-network">
+    <div class="card">
+      <h2>İnternet Bağlantısı</h2>
+      <p style="margin:0 0 10px">
+        <span class="status"><span class="dot" id="netDot"></span><span id="netLabel">kontrol ediliyor…</span></span>
+      </p>
+      <dl class="stat-grid">
+        <dt>Bağlantı tipi (effectiveType)</dt><dd id="nType">—</dd>
+        <dt>Tahmini indirme (downlink)</dt><dd id="nDown">—</dd>
+        <dt>Tahmini gecikme (RTT)</dt><dd id="nRtt">—</dd>
+        <dt>Veri tasarrufu</dt><dd id="nSave">—</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2>Hız ve Gecikme Ölçümü</h2>
+      <p class="hint">İndirme testi Cloudflare uç noktasını kullanır (~10 MB). Mobil veride kotanı harcayabilir.</p>
+      <div class="row">
+        <button class="btn blue" id="btnPing">📡 Gecikme Ölç (10×)</button>
+        <button class="btn primary" id="btnSpeed">⬇️ İndirme Hızı Testi</button>
+      </div>
+      <dl class="stat-grid" style="margin-top:12px">
+        <dt>Ortalama gecikme</dt><dd id="nPing">—</dd>
+        <dt>Jitter</dt><dd id="nJitter">—</dd>
+        <dt>İndirme hızı</dt><dd id="nSpeed">—</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2>Olay Günlüğü</h2>
+      <div class="log" id="netLog">Hazır.</div>
+    </div>
+  </section>
+</main>
+
+<div id="colorOverlay">
+  <button class="exit" id="btnExitColor">Çıkış ✕</button>
+  <div class="label" id="colorLabel"></div>
+  <div class="navhint">Sol yarı: önceki · Sağ yarı: sonraki</div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW kaydı başarısız:', err));
+  });
+}
+
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tab.dataset.panel === 'touch') resizeTouchCanvas();
+    if (tab.dataset.panel === 'mic') resizeMicCanvas();
+  });
+});
+
+const COLORS = [
+  { name: 'Kırmızı',      value: '#ff0000' },
+  { name: 'Yeşil',        value: '#00ff00', text: '#003300' },
+  { name: 'Mavi',         value: '#0000ff' },
+  { name: 'Beyaz',        value: '#ffffff', text: '#111' },
+  { name: 'Siyah',        value: '#000000' },
+  { name: 'Gri %50',      value: '#808080' },
+  { name: 'Camgöbeği',    value: '#00ffff', text: '#003333' },
+  { name: 'Eflatun',      value: '#ff00ff', text: '#330033' },
+  { name: 'Sarı',         value: '#ffff00', text: '#333300' },
+  { name: 'Turuncu',      value: '#ff8000', text: '#331a00' },
+  { name: 'Gri Gradyan',  value: 'linear-gradient(135deg,#000 0%,#fff 100%)' },
+  { name: 'RGB Gradyan',  value: 'linear-gradient(90deg,#f00 0%,#0f0 50%,#00f 100%)' }
+];
+
+const swatchWrap = document.getElementById('swatches');
+COLORS.forEach((c, i) => {
+  const el = document.createElement('div');
+  el.className = 'swatch';
+  el.style.background = c.value;
+  el.style.color = c.text || '#fff';
+  el.textContent = c.name;
+  el.addEventListener('click', () => startColorTest(i));
+  swatchWrap.appendChild(el);
+});
+
+const overlay   = document.getElementById('colorOverlay');
+const colorLbl  = document.getElementById('colorLabel');
+let colorIdx = 0;
+let wakeLock = null;
+
+function applyOverlayColor() {
+  const c = COLORS[colorIdx];
+  overlay.style.background = c.value;
+  overlay.style.color = c.text || '#fff';
+  colorLbl.textContent = `${c.name}  ·  ${colorIdx + 1}/${COLORS.length}`;
+}
+
+async function startColorTest(index = 0) {
+  colorIdx = index;
+  overlay.classList.add('active');
+  applyOverlayColor();
+  try { if (overlay.requestFullscreen) await overlay.requestFullscreen({ navigationUI: 'hide' }); } catch (e) {}
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+
+async function exitColorTest() {
+  overlay.classList.remove('active');
+  try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) {}
+  try { if (wakeLock) { await wakeLock.release(); wakeLock = null; } } catch (e) {}
+}
+
+overlay.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.exit')) return;
+  const rect = overlay.getBoundingClientRect();
+  if (e.clientX > rect.width / 2) colorIdx = (colorIdx + 1) % COLORS.length;
+  else colorIdx = (colorIdx - 1 + COLORS.length) % COLORS.length;
+  applyOverlayColor();
+});
+document.getElementById('btnExitColor').addEventListener('click', exitColorTest);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') exitColorTest(); });
+document.getElementById('btnStartScreen').addEventListener('click', () => startColorTest(0));
+
+function updateScreenStats() {
+  document.getElementById('sRes').textContent   = `${screen.width} × ${screen.height}`;
+  document.getElementById('sPhys').textContent  = `${screen.width * devicePixelRatio} × ${screen.height * devicePixelRatio}`;
+  document.getElementById('sDpr').textContent   = devicePixelRatio;
+  document.getElementById('sDepth').textContent = `${screen.colorDepth} bit`;
+  document.getElementById('sOrient').textContent =
+    (screen.orientation ? screen.orientation.type : (innerWidth > innerHeight ? 'landscape' : 'portrait'));
+}
+updateScreenStats();
+addEventListener('resize', updateScreenStats);
+addEventListener('orientationchange', () => setTimeout(updateScreenStats, 250));
+
+document.getElementById('btnHz').addEventListener('click', () => {
+  const out = document.getElementById('sHz');
+  out.textContent = 'ölçülüyor…';
+  let frames = 0;
+  const t0 = performance.now();
+  function tick(t) {
+    frames++;
+    const elapsed = t - t0;
+    if (elapsed >= 1200) {
+      const hz = (frames * 1000) / elapsed;
+      out.textContent = hz.toFixed(1) + ' Hz';
+    } else {
+      requestAnimationFrame(tick);
+    }
+  }
+  requestAnimationFrame(tick);
+});
+
+const tCanvas = document.getElementById('touchCanvas');
+const tCtx    = tCanvas.getContext('2d');
+const pointers = new Map();
+const PALETTE = ['#4ade80','#60a5fa','#f472b6','#fbbf24','#a78bfa','#22d3ee','#fb7185','#34d399','#facc15','#f97316'];
+let tW = 0, tH = 0;
+
+document.getElementById('tMax').textContent = navigator.maxTouchPoints || 'bilinmiyor';
+
+function resizeTouchCanvas() {
+  const dpr = devicePixelRatio || 1;
+  const rect = tCanvas.getBoundingClientRect();
+  if (!rect.width) return;
+  tW = rect.width; tH = rect.height;
+  tCanvas.width  = Math.round(rect.width  * dpr);
+  tCanvas.height = Math.round(rect.height * dpr);
+  tCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resizeTouchCanvas);
+addEventListener('orientationchange', () => setTimeout(resizeTouchCanvas, 250));
+setTimeout(resizeTouchCanvas, 60);
+
+function localPos(e) {
+  const r = tCanvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+tCanvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  tCanvas.setPointerCapture(e.pointerId);
+  const p = localPos(e);
+  const color = PALETTE[pointers.size % PALETTE.length];
+  pointers.set(e.pointerId, { ...p, color, trail: [], type: e.pointerType, start: performance.now() });
+  document.getElementById('tType').textContent = e.pointerType;
+  updateActiveCount();
+});
+
+tCanvas.addEventListener('pointermove', (e) => {
+  const ptr = pointers.get(e.pointerId);
+  if (!ptr) return;
+  e.preventDefault();
+  const p = localPos(e);
+  ptr.trail.push({ x: p.x, y: p.y, t: performance.now() });
+  if (ptr.trail.length > 24) ptr.trail.shift();
+  ptr.x = p.x; ptr.y = p.y;
+});
+
+['pointerup', 'pointercancel'].forEach(ev =>
+  tCanvas.addEventListener(ev, (e) => { pointers.delete(e.pointerId); updateActiveCount(); })
+);
+
+function updateActiveCount() {
+  document.getElementById('tActive').textContent = pointers.size;
+}
+
+function drawTouch() {
+  if (tW && tH) {
+    tCtx.clearRect(0, 0, tW, tH);
+    tCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+    tCtx.lineWidth = 1;
+    const step = 40;
+    for (let x = 0; x < tW; x += step) { tCtx.beginPath(); tCtx.moveTo(x, 0); tCtx.lineTo(x, tH); tCtx.stroke(); }
+    for (let y = 0; y < tH; y += step) { tCtx.beginPath(); tCtx.moveTo(0, y); tCtx.lineTo(tW, y); tCtx.stroke(); }
+    let i = 0;
+    pointers.forEach((p) => {
+      if (p.trail.length > 1) {
+        tCtx.beginPath();
+        p.trail.forEach((pt, k) => k === 0 ? tCtx.moveTo(pt.x, pt.y) : tCtx.lineTo(pt.x, pt.y));
+        tCtx.strokeStyle = p.color + '66';
+        tCtx.lineWidth = 10;
+        tCtx.lineCap = 'round';
+        tCtx.lineJoin = 'round';
+        tCtx.stroke();
+      }
+      tCtx.beginPath();
+      tCtx.arc(p.x, p.y, 42, 0, Math.PI * 2);
+      tCtx.strokeStyle = p.color;
+      tCtx.lineWidth = 3;
+      tCtx.stroke();
+      tCtx.beginPath();
+      tCtx.arc(p.x, p.y, 16, 0, Math.PI * 2);
+      tCtx.fillStyle = p.color;
+      tCtx.fill();
+      tCtx.fillStyle = '#fff';
+      tCtx.font = 'bold 12px ui-monospace, monospace';
+      tCtx.textAlign = 'center';
+      tCtx.fillText(`${i + 1}`, p.x, p.y + 4);
+      tCtx.fillStyle = p.color;
+      tCtx.font = '11px ui-monospace, monospace';
+      tCtx.fillText(`${Math.round(p.x)},${Math.round(p.y)}`, p.x, p.y - 52);
+      i++;
+    });
+  }
+  requestAnimationFrame(drawTouch);
+}
+requestAnimationFrame(drawTouch);
+
+let audioCtx = null, oscNode = null, gainNode = null, panNode = null;
+let sweepTimer = null;
+const volSlider = document.getElementById('vol');
+const freqSlider = document.getElementById('freq');
+const audioStateEl = document.getElementById('audioState');
+
+function gainValue() { return (volSlider.value / 100) * 0.35; }
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  audioStateEl.textContent = 'AudioContext: ' + audioCtx.state + ' @ ' + audioCtx.sampleRate + ' Hz';
+  audioStateEl.className = 'pill ok';
+  return audioCtx;
+}
+
+function stopTone() {
+  if (sweepTimer) { cancelAnimationFrame(sweepTimer); sweepTimer = null; }
+  if (!oscNode || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  try {
+    gainNode.gain.cancelScheduledValues(t);
+    gainNode.gain.setValueAtTime(Math.max(gainNode.gain.value, 0.0001), t);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    oscNode.stop(t + 0.08);
+  } catch (e) {}
+  oscNode = null; gainNode = null; panNode = null;
+}
+
+function playTone(freq, pan = 0) {
+  stopTone();
+  const ctx = ensureAudio();
+  oscNode  = ctx.createOscillator();
+  gainNode = ctx.createGain();
+  panNode  = ctx.createStereoPanner();
+  oscNode.type = 'sine';
+  oscNode.frequency.value = freq;
+  panNode.pan.value = Math.max(-1, Math.min(1, pan));
+  const t = ctx.currentTime;
+  gainNode.gain.setValueAtTime(0.0001, t);
+  gainNode.gain.exponentialRampToValueAtTime(Math.max(gainValue(), 0.0001), t + 0.04);
+  oscNode.connect(gainNode).connect(panNode).connect(ctx.destination);
+  oscNode.start(t);
+}
+
+function startSweep() {
+  stopTone();
+  const ctx = ensureAudio();
+  oscNode  = ctx.createOscillator();
+  gainNode = ctx.createGain();
+  panNode  = ctx.createStereoPanner();
+  oscNode.type = 'sine';
+  panNode.pan.value = 0;
+  const t = ctx.currentTime;
+  const DUR = 10;
+  oscNode.frequency.setValueAtTime(20, t);
+  oscNode.frequency.exponentialRampToValueAtTime(18000, t + DUR);
+  gainNode.gain.setValueAtTime(0.0001, t);
+  gainNode.gain.exponentialRampToValueAtTime(Math.max(gainValue(), 0.0001), t + 0.15);
+  gainNode.gain.setValueAtTime(Math.max(gainValue(), 0.0001), t + DUR - 0.4);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, t + DUR);
+  oscNode.connect(gainNode).connect(panNode).connect(ctx.destination);
+  oscNode.start(t);
+  oscNode.stop(t + DUR + 0.05);
+  setTimeout(() => { if (oscNode) { oscNode = null; gainNode = null; } }, (DUR + 0.3) * 1000);
+}
+
+document.querySelectorAll('[data-tone]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.tone;
+    if (mode === 'stop') { stopTone(); return; }
+    const f = parseFloat(freqSlider.value);
+    const pan = mode === 'left' ? -1 : mode === 'right' ? 1 : 0;
+    playTone(f, pan);
+  });
+});
+
+document.getElementById('btnSweep').addEventListener('click', startSweep);
+
+volSlider.addEventListener('input', () => {
+  document.getElementById('volLabel').textContent = '%' + volSlider.value;
+  if (gainNode && audioCtx) {
+    gainNode.gain.setTargetAtTime(Math.max(gainValue(), 0.0001), audioCtx.currentTime, 0.02);
+  }
+});
+
+freqSlider.addEventListener('input', () => {
+  document.getElementById('freqLabel').textContent = freqSlider.value + ' Hz';
+  if (oscNode && audioCtx) {
+    oscNode.frequency.setTargetAtTime(parseFloat(freqSlider.value), audioCtx.currentTime, 0.02);
+  }
+});
+
+const micCanvas = document.getElementById('micCanvas');
+const micCtx2d  = micCanvas.getContext('2d');
+let micStream = null, micAudioCtx = null, analyser = null, micRaf = null;
+let timeData = null, micW = 0, micH = 0;
+let mediaRecorder = null, recChunks = [];
+
+function resizeMicCanvas() {
+  const dpr = devicePixelRatio || 1;
+  const r = micCanvas.getBoundingClientRect();
+  if (!r.width) return;
+  micW = r.width; micH = r.height;
+  micCanvas.width  = Math.round(r.width * dpr);
+  micCanvas.height = Math.round(r.height * dpr);
+  micCtx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resizeMicCanvas);
+setTimeout(resizeMicCanvas, 60);
+
+async function startMic() {
+  const info = document.getElementById('micInfo');
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (micAudioCtx.state === 'suspended') await micAudioCtx.resume();
+    const src = micAudioCtx.createMediaStreamSource(micStream);
+    analyser = micAudioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.6;
+    src.connect(analyser);
+    timeData = new Uint8Array(analyser.fftSize);
+    const track = micStream.getAudioTracks()[0];
+    const s = track.getSettings ? track.getSettings() : {};
+    info.textContent = `Cihaz: ${track.label || 'bilinmiyor'} · ${s.sampleRate || '?'} Hz · kanal: ${s.channelCount || '?'}`;
+    document.getElementById('btnMicStart').disabled = true;
+    document.getElementById('btnMicStop').disabled = false;
+    document.getElementById('btnRec').disabled = false;
+    resizeMicCanvas();
+    drawMic();
+  } catch (err) {
+    info.textContent = '❌ Hata: ' + err.name + ' — ' + err.message;
+  }
+}
+
+function stopMic() {
+  if (micRaf) { cancelAnimationFrame(micRaf); micRaf = null; }
+  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (micAudioCtx) { micAudioCtx.close(); micAudioCtx = null; }
+  analyser = null;
+  micCtx2d.clearRect(0, 0, micW, micH);
+  document.getElementById('micBar').style.width = '0%';
+  document.getElementById('micDb').textContent = '-∞ dB';
+  document.getElementById('micInfo').textContent = 'Mikrofon kapalı.';
+  document.getElementById('btnMicStart').disabled = false;
+  document.getElementById('btnMicStop').disabled = true;
+  document.getElementById('btnRec').disabled = true;
+  document.getElementById('btnRec').textContent = '⏺ Kayıt Başlat';
+}
+
+function drawMic() {
+  if (!analyser || !timeData) return;
+  analyser.getByteTimeDomainData(timeData);
+  let sum = 0;
+  for (let i = 0; i < timeData.length; i++) {
+    const v = (timeData[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / timeData.length);
+  const db = rms > 0.00001 ? 20 * Math.log10(rms) : -Infinity;
+  const pct = Math.max(0, Math.min(100, ((db + 70) / 70) * 100));
+  document.getElementById('micBar').style.width = pct + '%';
+  document.getElementById('micDb').textContent = db === -Infinity ? '-∞ dB' : db.toFixed(1) + ' dB';
+  micCtx2d.clearRect(0, 0, micW, micH);
+  micCtx2d.strokeStyle = 'rgba(255,255,255,0.06)';
+  micCtx2d.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    const y = (micH / 4) * i;
+    micCtx2d.beginPath(); micCtx2d.moveTo(0, y); micCtx2d.lineTo(micW, y); micCtx2d.stroke();
+  }
+  micCtx2d.beginPath();
+  const slice = micW / timeData.length;
+  for (let i = 0; i < timeData.length; i++) {
+    const v = timeData[i] / 128.0;
+    const y = (v * micH) / 2;
+    const x = i * slice;
+    i === 0 ? micCtx2d.moveTo(x, y) : micCtx2d.lineTo(x, y);
+  }
+  micCtx2d.strokeStyle = '#4ade80';
+  micCtx2d.lineWidth = 2;
+  micCtx2d.stroke();
+  micRaf = requestAnimationFrame(drawMic);
+}
+
+document.getElementById('btnMicStart').addEventListener('click', startMic);
+document.getElementById('btnMicStop').addEventListener('click', stopMic);
+
+document.getElementById('btnRec').addEventListener('click', () => {
+  const btn = document.getElementById('btnRec');
+  const playback = document.getElementById('playback');
+  if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); return; }
+  if (!micStream) return;
+  recChunks = [];
+  try { mediaRecorder = new MediaRecorder(micStream); }
+  catch (e) { alert('MediaRecorder desteklenmiyor: ' + e.message); return; }
+  mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+    playback.src = URL.createObjectURL(blob);
+    playback.style.display = 'block';
+    btn.textContent = '⏺ Kayıt Başlat';
+    btn.classList.remove('danger');
+  };
+  mediaRecorder.start();
+  btn.textContent = '⏹ Kaydı Bitir';
+  btn.classList.add('danger');
+});
+
+const vibSupport = document.getElementById('vibSupport');
+const hasVibrate = 'vibrate' in navigator;
+vibSupport.textContent = hasVibrate ? 'destekleniyor ✓' : 'desteklenmiyor ✗';
+vibSupport.className = 'pill ' + (hasVibrate ? 'ok' : 'no');
+
+document.querySelectorAll('[data-vib]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!hasVibrate) return;
+    const pattern = btn.dataset.vib.split(',').map(n => parseInt(n.trim(), 10)).filter(n => !isNaN(n));
+    navigator.vibrate(pattern);
+  });
+});
+
+document.getElementById('btnVibCustom').addEventListener('click', () => {
+  if (!hasVibrate) return;
+  const raw = document.getElementById('vibCustom').value;
+  const pattern = raw.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n >= 0);
+  if (!pattern.length) { alert('Geçerli bir desen girin. Örn: 200,100,200'); return; }
+  navigator.vibrate(pattern);
+});
+
+document.getElementById('btnVibStop').addEventListener('click', () => {
+  if (hasVibrate) navigator.vibrate(0);
+});
+
+const netDot    = document.getElementById('netDot');
+const netLabel  = document.getElementById('netLabel');
+const netLog    = document.getElementById('netLog');
+
+function log(msg) {
+  const time = new Date().toLocaleTimeString('tr-TR');
+  netLog.textContent = `[${time}] ${msg}\n` + netLog.textContent;
+}
+
+function updateOnlineStatus() {
+  const online = navigator.onLine;
+  netDot.className = 'dot ' + (online ? 'on' : 'off');
+  netLabel.textContent = online ? 'Çevrimiçi' : 'Çevrimdışı';
+}
+
+addEventListener('online',  () => { updateOnlineStatus(); log('🟢 online olayı tetiklendi'); });
+addEventListener('offline', () => { updateOnlineStatus(); log('🔴 offline olayı tetiklendi'); });
+
+function updateConnectionInfo() {
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!c) {
+    document.getElementById('nType').textContent = 'desteklenmiyor';
+    document.getElementById('nDown').textContent = '—';
+    document.getElementById('nRtt').textContent  = '—';
+    document.getElementById('nSave').textContent = '—';
+    return;
+  }
+  document.getElementById('nType').textContent = c.effectiveType || '—';
+  document.getElementById('nDown').textContent = c.downlink != null ? c.downlink + ' Mb/s' : '—';
+  document.getElementById('nRtt').textContent  = c.rtt != null ? c.rtt + ' ms' : '—';
+  document.getElementById('nSave').textContent = c.saveData ? 'açık' : 'kapalı';
+}
+
+updateOnlineStatus();
+updateConnectionInfo();
+
+const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+if (conn && conn.addEventListener) {
+  conn.addEventListener('change', () => { updateConnectionInfo(); log('ℹ️ Ağ bilgisi güncellendi: ' + conn.effectiveType); });
+}
+
+document.getElementById('btnPing').addEventListener('click', async () => {
+  const btn = document.getElementById('btnPing');
+  btn.disabled = true;
+  btn.textContent = 'Ölçülüyor…';
+  const samples = [];
+  const url = 'https://speed.cloudflare.com/__down?bytes=0';
+  for (let i = 0; i < 10; i++) {
+    try {
+      const t0 = performance.now();
+      await fetch(url + '&r=' + Math.random(), { cache: 'no-store', mode: 'cors' });
+      samples.push(performance.now() - t0);
+    } catch (e) { log('❌ Ping hatası: ' + e.message); break; }
+  }
+  if (samples.length) {
+    const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+    const jitter = samples.length > 1
+      ? Math.sqrt(samples.reduce((a, b) => a + (b - avg) ** 2, 0) / samples.length)
+      : 0;
+    document.getElementById('nPing').textContent   = avg.toFixed(0) + ' ms';
+    document.getElementById('nJitter').textContent = jitter.toFixed(0) + ' ms';
+    log(`📡 Ping: ${avg.toFixed(0)} ms · Jitter: ${jitter.toFixed(0)} ms (${samples.length} örnek)`);
+  } else {
+    document.getElementById('nPing').textContent = 'başarısız';
+  }
+  btn.disabled = false;
+  btn.textContent = '📡 Gecikme Ölç (10×)';
+});
+
+document.getElementById('btnSpeed').addEventListener('click', async () => {
+  const btn = document.getElementById('btnSpeed');
+  btn.disabled = true;
+  const out = document.getElementById('nSpeed');
+  const BYTES = 10 * 1024 * 1024;
+  const url = `https://speed.cloudflare.com/__down?bytes=${BYTES}&r=${Math.random()}`;
+  out.textContent = 'indiriliyor…';
+  log('⬇️ İndirme testi başladı (10 MB)');
+  try {
+    const t0 = performance.now();
+    const res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const reader = res.body && res.body.getReader ? res.body.getReader() : null;
+    let received = 0;
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.length;
+        const sec = (performance.now() - t0) / 1000;
+        const mbps = (received * 8) / sec / 1e6;
+        out.textContent = mbps.toFixed(1) + ' Mb/s';
+      }
+    } else {
+      const blob = await res.blob();
+      received = blob.size;
+    }
+    const sec = (performance.now() - t0) / 1000;
+    const mbps = (received * 8) / sec / 1e6;
+    const mbyte = received / sec / 1e6;
+    out.textContent = `${mbps.toFixed(1)} Mb/s`;
+    log(`✅ ${(received / 1048576).toFixed(1)} MB indirildi · ${sec.toFixed(2)} s · ${mbps.toFixed(1)} Mb/s (${mbyte.toFixed(2)} MB/s)`);
+  } catch (e) {
+    out.textContent = 'hata';
+    log('❌ İndirme testi hatası: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '⬇️ İndirme Hızı Testi';
+});
+
+log('Uygulama hazır. Cihaz: ' + navigator.userAgent);
+</script>
+</body>
+</html>
